@@ -937,6 +937,7 @@ main(int argc, char **argv)
 	gndo->ndo_error=ndo_error;
 	gndo->ndo_warning=ndo_warning;
 	gndo->ndo_snaplen = DEFAULT_SNAPLEN;
+	gndo->ndo_nflag = 1;
 
 	cnt = -1;
 	device = NULL;
@@ -1160,7 +1161,9 @@ main(int argc, char **argv)
 			break;
 
 		case 'N':
-			++Nflag;
+			Nflag = ! Nflag;
+			if ( ! Nflag)
+				nflag = 0;
 			break;
 
 		case 'O':
@@ -2321,7 +2324,7 @@ print_packet(u_char *user, const struct pcap_pkthdr *h, const u_char *sp)
 			/*
 			 * Include the link-layer header.
 			 */
-			hex_and_ascii_print(ndo, "\n\t", sp, h->caplen);
+			hex_and_ascii_print(ndo, "\n  ", sp, h->caplen);
 		} else {
 			/*
 			 * Don't include the link-layer header - and if
@@ -2329,7 +2332,7 @@ print_packet(u_char *user, const struct pcap_pkthdr *h, const u_char *sp)
 			 * print nothing.
 			 */
 			if (h->caplen > hdrlen)
-				hex_and_ascii_print(ndo, "\n\t", sp + hdrlen,
+				hex_and_ascii_print(ndo, "\n  ", sp + hdrlen,
 				    h->caplen - hdrlen);
 		}
 	} else if (ndo->ndo_xflag) {
@@ -2340,7 +2343,7 @@ print_packet(u_char *user, const struct pcap_pkthdr *h, const u_char *sp)
 			/*
 			 * Include the link-layer header.
 			 */
-                        hex_print(ndo, "\n\t", sp, h->caplen);
+                        hex_print(ndo, "\n  ", sp, h->caplen);
 		} else {
 			/*
 			 * Don't include the link-layer header - and if
@@ -2348,7 +2351,7 @@ print_packet(u_char *user, const struct pcap_pkthdr *h, const u_char *sp)
 			 * print nothing.
 			 */
 			if (h->caplen > hdrlen)
-				hex_print(ndo, "\n\t", sp + hdrlen,
+				hex_print(ndo, "\n  ", sp + hdrlen,
                                           h->caplen - hdrlen);
 		}
 	} else if (ndo->ndo_Aflag) {
