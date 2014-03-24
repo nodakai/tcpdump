@@ -50,27 +50,39 @@ static const char rcsid[] _U_ =
 #include "interface.h"
 
 #define ASCII_LINELENGTH 300
-#define HEXDUMP_BYTES_PER_LINE 16
+#define HEXDUMP_BYTES_PER_LINE 32
 #define HEXDUMP_SHORTS_PER_LINE (HEXDUMP_BYTES_PER_LINE / 2)
 #define HEXDUMP_HEXSTUFF_PER_SHORT 5 /* 4 hex digits and a space */
 #define HEXDUMP_HEXSTUFF_PER_LINE \
 		(HEXDUMP_HEXSTUFF_PER_SHORT * HEXDUMP_SHORTS_PER_LINE)
+
+static char sanitize(int s) {
+    if (0x11 == s)
+        return '#';
+    else if (0x12 == s)
+        return '$';
+    else if (0x13 == s)
+        return '@';
+    else if (isspace(s) || 0x01 == s)
+        return ' ';
+    else if (isgraph(s))
+        return s;
+    else
+        return '.';
+}
 
 void
 ascii_print(register const u_char *cp, register u_int length)
 {
 	register int s;
 
-	putchar('\n');
+        printf(" [");
 	while (length > 0) {
 		s = *cp++;
 		length--;
-		if (!isgraph(s) &&
-		    (s != '\t' && s != ' ' && s != '\n' && s != '\r'))
-			putchar('.');
-		else
-			putchar(s);
+                putchar(sanitize(s));
 	}
+	putchar(']');
 }
 
 void
@@ -92,12 +104,12 @@ hex_and_ascii_print_with_offset(register const char *ident,
 		(void)snprintf(hsp, sizeof(hexstuff) - (hsp - hexstuff),
 		    " %02x%02x", s1, s2);
 		hsp += HEXDUMP_HEXSTUFF_PER_SHORT;
-		*(asp++) = (isgraph(s1) ? s1 : '.');
-		*(asp++) = (isgraph(s2) ? s2 : '.');
+		*(asp++) = sanitize(s1);
+		*(asp++) = sanitize(s2);
 		i++;
 		if (i >= HEXDUMP_SHORTS_PER_LINE) {
 			*hsp = *asp = '\0';
-			(void)printf("%s0x%04x: %-*s  %s",
+			(void)printf("%s0x%04x: %-*s [%s]",
 			    ident, oset, HEXDUMP_HEXSTUFF_PER_LINE,
 			    hexstuff, asciistuff);
 			i = 0; hsp = hexstuff; asp = asciistuff;
@@ -109,12 +121,12 @@ hex_and_ascii_print_with_offset(register const char *ident,
 		(void)snprintf(hsp, sizeof(hexstuff) - (hsp - hexstuff),
 		    " %02x", s1);
 		hsp += 3;
-		*(asp++) = (isgraph(s1) ? s1 : '.');
+		*(asp++) = sanitize(s1);
 		++i;
 	}
 	if (i > 0) {
 		*hsp = *asp = '\0';
-		(void)printf("%s0x%04x: %-*s  %s",
+		(void)printf("%s0x%04x: %-*s [%s]",
 		     ident, oset, HEXDUMP_HEXSTUFF_PER_LINE,
 		     hexstuff, asciistuff);
 	}
