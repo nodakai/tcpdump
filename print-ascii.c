@@ -47,11 +47,26 @@
 #include "interface.h"
 
 #define ASCII_LINELENGTH 300
-#define HEXDUMP_BYTES_PER_LINE 16
+#define HEXDUMP_BYTES_PER_LINE 32
 #define HEXDUMP_SHORTS_PER_LINE (HEXDUMP_BYTES_PER_LINE / 2)
 #define HEXDUMP_HEXSTUFF_PER_SHORT 5 /* 4 hex digits and a space */
 #define HEXDUMP_HEXSTUFF_PER_LINE \
 		(HEXDUMP_HEXSTUFF_PER_SHORT * HEXDUMP_SHORTS_PER_LINE)
+
+static char sanitize(u_char s) {
+    if (0x11 == s)
+        return '#';
+    else if (0x12 == s)
+        return '$';
+    else if (0x13 == s)
+        return '@';
+    else if (isspace(s) || 0x01 == s)
+        return ' ';
+    else if (isgraph(s))
+        return s;
+    else
+        return '.';
+}
 
 void
 ascii_print(netdissect_options *ndo,
@@ -59,30 +74,13 @@ ascii_print(netdissect_options *ndo,
 {
 	register u_char s;
 
-	ND_PRINT((ndo, "\n"));
+	ND_PRINT((ndo, " ["));
 	while (length > 0) {
-		s = *cp++;
+		s = sanitize(*cp++);
 		length--;
-		if (s == '\r') {
-			/*
-			 * Don't print CRs at the end of the line; they
-			 * don't belong at the ends of lines on UN*X,
-			 * and the standard I/O library will give us one
-			 * on Windows so we don't need to print one
-			 * ourselves.
-			 *
-			 * In the middle of a line, just print a '.'.
-			 */
-			if (length > 1 && *cp != '\n')
-				ND_PRINT((ndo, "."));
-		} else {
-			if (!ND_ISGRAPH(s) &&
-			    (s != '\t' && s != ' ' && s != '\n'))
-				ND_PRINT((ndo, "."));
-			else
-				ND_PRINT((ndo, "%c", s));
-		}
+                ND_PRINT((ndo, "%c", s));
 	}
+	ND_PRINT((ndo, "]"));
 }
 
 void
@@ -104,12 +102,12 @@ hex_and_ascii_print_with_offset(netdissect_options *ndo, register const char *id
 		(void)snprintf(hsp, sizeof(hexstuff) - (hsp - hexstuff),
 		    " %02x%02x", s1, s2);
 		hsp += HEXDUMP_HEXSTUFF_PER_SHORT;
-		*(asp++) = (ND_ISGRAPH(s1) ? s1 : '.');
-		*(asp++) = (ND_ISGRAPH(s2) ? s2 : '.');
+		*(asp++) = sanitize(s1);
+		*(asp++) = sanitize(s2);
 		i++;
 		if (i >= HEXDUMP_SHORTS_PER_LINE) {
 			*hsp = *asp = '\0';
-			ND_PRINT((ndo, "%s0x%04x: %-*s  %s",
+			ND_PRINT((ndo, "%s0x%04x: %-*s [%s]",
 			    ident, oset, HEXDUMP_HEXSTUFF_PER_LINE,
 			    hexstuff, asciistuff));
 			i = 0; hsp = hexstuff; asp = asciistuff;
@@ -121,12 +119,12 @@ hex_and_ascii_print_with_offset(netdissect_options *ndo, register const char *id
 		(void)snprintf(hsp, sizeof(hexstuff) - (hsp - hexstuff),
 		    " %02x", s1);
 		hsp += 3;
-		*(asp++) = (ND_ISGRAPH(s1) ? s1 : '.');
+		*(asp++) = sanitize(s1);
 		++i;
 	}
 	if (i > 0) {
 		*hsp = *asp = '\0';
-		ND_PRINT((ndo, "%s0x%04x: %-*s  %s",
+		ND_PRINT((ndo, "%s0x%04x: %-*s [%s]",
 		     ident, oset, HEXDUMP_HEXSTUFF_PER_LINE,
 		     hexstuff, asciistuff));
 	}
